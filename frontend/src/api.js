@@ -18,8 +18,8 @@ export const fetchApi = async (endpoint, options = {}) => {
 
   const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
 
-  // 인증 실패(401) 시 토큰 삭제 후 새로고침 (로그인 화면으로 이동)
-  if (response.status === 401) {
+  // [수정된 부분] 로그인 요청('/login') 중 발생한 401 에러는 새로고침을 예외 처리합니다.
+  if (response.status === 401 && !endpoint.includes('/login')) {
     localStorage.removeItem('pds_token');
     localStorage.removeItem('pds_username');
     window.location.reload();
