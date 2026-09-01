@@ -46,6 +46,8 @@ export default function App() {
     setToken('');
     setUsername('');
     setCurrentPlanId(null);
+    setFormInput({ username: '', password: '' });
+    setAuthError('');
   };
 
   if (!token) {
@@ -130,7 +132,6 @@ export default function App() {
                 onChange={e => setFormInput({...formInput, password: e.target.value})}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none' }}
               />
-              {/* 회원가입 모드일 때만 비밀번호 8자 이상 안내 문구 표시 */}
               {isRegisterMode && (
                 <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
                   * 비밀번호는 최소 8자 이상이어야 합니다.
