@@ -8,7 +8,6 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem('pds_token') || '');
   const [username, setUsername] = useState(localStorage.getItem('pds_username') || '');
   
-  // 로그인/회원가입 폼 상태
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [formInput, setFormInput] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
@@ -49,7 +48,6 @@ export default function App() {
     setCurrentPlanId(null);
   };
 
-  // 1. 로그인되지 않은 경우: 로그인/회원가입 화면 출력 (T07-C97 충족)
   if (!token) {
     return (
       <div style={{
@@ -126,11 +124,18 @@ export default function App() {
               <input 
                 type="password"
                 required
-                placeholder="비밀번호 입력"
+                minLength={isRegisterMode ? 8 : undefined}
+                placeholder={isRegisterMode ? "비밀번호 (8자 이상)" : "비밀번호 입력"}
                 value={formInput.password}
                 onChange={e => setFormInput({...formInput, password: e.target.value})}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none' }}
               />
+              {/* 회원가입 모드일 때만 비밀번호 8자 이상 안내 문구 표시 */}
+              {isRegisterMode && (
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                  * 비밀번호는 최소 8자 이상이어야 합니다.
+                </p>
+              )}
             </div>
 
             <button type="submit" style={{
@@ -151,7 +156,8 @@ export default function App() {
 
           <div style={{ textAlign: 'center', marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
             <button 
-              onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); }}
+              type="button"
+              onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); setFormInput({username: '', password: ''}); }}
               style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}
             >
               {isRegisterMode ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
@@ -162,7 +168,6 @@ export default function App() {
     );
   }
 
-  // 2. 로그인된 경우: 메인 엔터프라이즈 대시보드 출력
   return (
     <div style={{
       minHeight: '100vh',
@@ -172,7 +177,6 @@ export default function App() {
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* 상단 네비게이션 바 */}
       <header style={{
         backgroundColor: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
@@ -232,7 +236,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* 메인 컨테이너 */}
       <main style={{
         maxWidth: '1200px',
         width: '100%',
@@ -272,7 +275,6 @@ export default function App() {
         )}
       </main>
 
-      {/* 푸터 */}
       <footer style={{
         borderTop: '1px solid #e2e8f0',
         backgroundColor: '#ffffff',
