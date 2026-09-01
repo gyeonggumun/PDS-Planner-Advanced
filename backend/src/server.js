@@ -35,7 +35,7 @@ const db = new sqlite3.Database(dbFile, (err) => {
   else console.log('SQLite 데이터베이스 연결 완료 (인증 시스템 활성화)');
 });
 
-// 테이블 생성 (users 및 기존 소유권 연동 테이블)
+// 테이블 생성
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -81,43 +81,51 @@ const authMiddleware = (req, res, next) => {
     return res.status(401).json({ error: '인증 토큰 또는 세션 정보가 필요합니다. 로그인 후 이용해주세요.' });
   }
 
-  // 사용자의 고유 ID(또는 토큰)를 owner 범위로 지정
   db.get(`SELECT id FROM users WHERE id = ?`, [token], (err, user) => {
     if (err || !user) {
       return res.status(401).json({ error: '유효하지 않거나 만료된 세션입니다.' });
     }
-    req.scope = user.id; // 로그인한 사용자의 ID로 격리
+    req.scope = user.id; 
     next();
   });
 };
 
 // --- [인증 API 라우트 (로그인 불필요)] ---
 
-// 1. 회원가입
-app.post('/api/register', async (req, res) => {
+// 1. 회원가입 (아이디 중복 검사 강화)
+app.post('/api/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: '아이디와 비밀번호를 모두 입력해주세요.' });
   }
 
-  try {
-    // T07-C101 ~ C104: bcrypt를 이용한 안전한 단방향 해시 암호화 (Salt 자동 적용)
-    const password_hash = await bcrypt.hash(password, 10);
-    const userId = crypto.randomUUID();
+  db.get(`SELECT id FROM users WHERE username = ?`, [username], async (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: '데이터베이스 조회 중 오류가 발생했습니다.' });
+    }
+    
+    if (row) {
+      return res.status(400).json({ error: '이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.' });
+    }
 
-    db.run(
-      `INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)`,
-      [userId, username, password_hash, new Date().toISOString()],
-      function(err) {
-        if (err) {
-          return res.status(400).json({ error: '이미 사용 중인 아이디입니다.' });
+    try {
+      const password_hash = await bcrypt.hash(password, 10);
+      const userId = crypto.randomUUID();
+
+      db.run(
+        `INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)`,
+        [userId, username, password_hash, new Date().toISOString()],
+        function(insertErr) {
+          if (insertErr) {
+            return res.status(400).json({ error: '계정 생성 중 문제가 발생했습니다.' });
+          }
+          res.json({ success: true, message: '회원가입이 완료되었습니다. 로그인해주세요.' });
         }
-        res.json({ success: true, message: '회원가입이 완료되었습니다.' });
-      }
-    );
-  } catch (e) {
-    res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
-  }
+      );
+    } catch (e) {
+      res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
+    }
+  });
 });
 
 // 2. 로그인
@@ -128,7 +136,6 @@ app.post('/api/login', (req, res) => {
   }
 
   db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
-    // T07-C99: 아이디가 없거나 비밀번호가 틀렸을 때 동일한 에러 문구 반환 (보안 강화)
     if (err || !user) {
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
@@ -138,7 +145,6 @@ app.post('/api/login', (req, res) => {
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
 
-    // 로그인 성공 시 고유 토큰(사용자 ID) 발급
     res.json({
       success: true,
       token: user.id,
