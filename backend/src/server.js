@@ -92,11 +92,16 @@ const authMiddleware = (req, res, next) => {
 
 // --- [인증 API 라우트 (로그인 불필요)] ---
 
-// 1. 회원가입 (아이디 중복 검사 강화)
+// 1. 회원가입 (비밀번호 길이 및 중복 검사)
 app.post('/api/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: '아이디와 비밀번호를 모두 입력해주세요.' });
+  }
+
+  // 비밀번호 최소 길이 검사 추가
+  if (password.length < 8) {
+    return res.status(400).json({ error: '비밀번호는 8자 이상이어야 합니다.' });
   }
 
   db.get(`SELECT id FROM users WHERE username = ?`, [username], async (err, row) => {
